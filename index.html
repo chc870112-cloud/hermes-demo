@@ -226,12 +226,12 @@
       <ol>
         <li>打开飞书（<a href="https://www.feishu.cn/" target="_blank" rel="noopener noreferrer">https://www.feishu.cn/</a>）并进入多维表格，创建或打开账本 Base。</li>
       </ol>
-      <p><img src="/Users/charles/.hermes/images/clip_20260507_103130_3.png" alt="飞书首页进入多维表格入口" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+      <p><img src="./images/clip_20260507_103130_3.png" alt="飞书首页进入多维表格入口" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
 
       <ol start="2">
         <li>将该 Base 绑定到上一步创建的应用（确保应用对该 Base 可读写）。</li>
       </ol>
-      <p><img src="/Users/charles/.hermes/images/clip_20260507_110626_5.png" alt="在 Base 中添加文档应用" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+      <p><img src="./images/clip_20260507_110626_5.png" alt="在 Base 中添加文档应用" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
 
       <ol start="3">
         <li>后续从 URL 提取 <code>app_token</code> 和 <code>table_id</code>。</li>
@@ -259,7 +259,7 @@
       <ol>
         <li>先从 Base 链接提取 <code>app_token</code>。</li>
       </ol>
-      <p><img src="/Users/charles/.hermes/images/clip_20260507_112224_6.png" alt="app_token 在 URL 中的位置" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+      <p><img src="./images/clip_20260507_112224_6.png" alt="app_token 在 URL 中的位置" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
       <p class="small">图：app_token 在 URL 中的位置</p>
       <p>把下面提示词发给 Hermes，让它自动建表并校验字段：</p>
       <pre>请在这个飞书 Base（app_token: <你的 app_token>）里创建一个名为「账单」的数据表，并创建以下字段：
@@ -275,7 +275,7 @@
 
 创建完成后，请返回 table_id，并读取字段列表确认字段全部创建成功。</pre>
       <p>创建后从 URL 提取 <code>table_id</code> 并记录。</p>
-      <p><img src="/Users/charles/.hermes/images/clip_20260507_173457_1.png" alt="table_id 在 URL 中的位置" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+      <p><img src="./images/clip_20260507_173457_1.png" alt="table_id 在 URL 中的位置" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
       <p class="small">图：table_id 在 URL 中的位置</p>
 
       <h3>5、在 Hermes 自动化配置里绑定账单表</h3>
@@ -401,7 +401,7 @@ _create_payment_bill_bitable_record(...)         # 创建飞书记录并返回 r
 3）账单类型分布（按“账单类型”，指标“金额求和”）
 并添加全局筛选：年月、来源平台、收支方向。
 默认筛选收支方向=支出。</pre>
-      <p><img src="/Users/charles/.hermes/images/clip_20260508_093713_1.png" alt="Image #1：个人记账仪表盘示例（飞书）" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+      <p><img src="./images/clip_20260508_093713_1.png" alt="Image #1：个人记账仪表盘示例（飞书）" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
       <p class="small">Image #1：个人记账仪表盘示例（含月度趋势、来源占比、筛选器等组件）。</p>
     </section>
 
