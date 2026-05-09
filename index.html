@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>微信/支付宝账单截图 → 飞书多维表格 自动入库</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #0f172a;
+      --sub: #475569;
+      --line: #dbe5f2;
+      --brand: #2563eb;
+      --brand-soft: #eaf2ff;
+      --ok: #0f766e;
+      --warn: #b45309;
+      --err: #b91c1c;
+      --shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      color: var(--text);
+      line-height: 1.8;
+      font-size: 18px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 36px 24px 64px; }
+    h1 { margin: 0 0 22px; font-size: 38px; line-height: 1.25; }
+    .sub { margin: 0 0 24px; color: var(--sub); font-size: 20px; }
+
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      margin-bottom: 26px;
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 24px; }
+    .toc ol { margin: 0; padding-left: 24px; }
+    .toc li { margin: 8px 0; font-size: 19px; }
+    .toc a { color: var(--brand); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    section h2 { margin: 0 0 14px; font-size: 30px; }
+    h3 { margin: 16px 0 10px; font-size: 24px; }
+    h4 { margin: 0; font-size: 20px; }
+    p, li { font-size: 19px; }
+    ul, ol { padding-left: 24px; }
+
+    .tip {
+      background: var(--brand-soft);
+      border: 1px solid #cfe0ff;
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+    pre {
+      background: #f8fafc;
+      color: #0f172a;
+      border-radius: 12px;
+      border: 1px solid #dbe3ef;
+      padding: 44px 14px 14px;
+      overflow: auto;
+      font-size: 15px;
+      line-height: 1.6;
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      border: 1px solid #c9d7ee;
+      background: #ffffff;
+      color: #1e3a8a;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: #eef4ff; }
+    .copy-btn.copied {
+      color: #065f46;
+      border-color: #a7f3d0;
+      background: #ecfdf5;
+    }
+    code {
+      background: #eef2ff;
+      color: #1e3a8a;
+      border: 1px solid #dbe4ff;
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: 0.95em;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .flow-step {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fafcff;
+    }
+    .step-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .step-num {
+      color: var(--brand);
+      font-weight: 700;
+      font-size: 14px;
+      background: #e6efff;
+      border: 1px solid #cddfff;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+
+    .issue-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .issue {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fff;
+    }
+    .err { color: var(--err); }
+    .warn { color: var(--warn); }
+    .ok { color: var(--ok); }
+
+    .footer { color: #64748b; text-align: center; margin-top: 10px; font-size: 15px; }
+
+    @media (max-width: 900px) {
+      h1 { font-size: 30px; }
+      section h2 { font-size: 26px; }
+      .flow-grid, .issue-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>账单截图自动入飞书</h1>
+
+    <nav class="toc">
+      <h2>目录</h2>
+      <ul style="list-style:none; padding-left:0; margin:0;">
+        <li><a href="#goal">一、目标</a></li>
+        <li><a href="#flow">二、流程</a></li>
+        <li><a href="#practice">三、实战 -- Hermes 通过 MCP 接入飞书多维表格</a></li>
+        <li><a href="#issues">四、遇到的问题 &amp; 解决方案</a></li>
+      </ul>
+    </nav>
+
+    <section id="goal">
+      <h2>一、目标</h2>
+      <p>把微信聊天里发送的账单截图（微信/支付宝）自动识别成结构化字段，写入飞书多维表格，并按交易单号去重，避免重复记账。</p>
+      <div class="tip">核心结果：新账单自动入库，重复账单自动跳过，并返回可追踪的 <code>record_id</code>。</div>
+    </section>
+
+    <section id="flow">
+      <h2>二、流程</h2>
+      <h3>微信截图 → Hermes 解析 → 飞书写入与回复（含 CDN 加解密）</h3>
+      <div class="flow-grid">
+        <div class="flow-step"><div class="step-head"><h4>📱 用户发送微信账单截图</h4><span class="step-num">Step 1</span></div><p>用户在微信把图片消息发给 Hermes（iLink Bot 身份）。</p></div>
+        <div class="flow-step"><div class="step-head"><h4>☁️ 微信侧媒体上传到加密 CDN</h4><span class="step-num">Step 2</span></div><p>图片以加密形式存放在 CDN，消息里带 <code>encrypted_query_param</code> 与文件密钥信息。</p></div>
+        <div class="flow-step"><div class="step-head"><h4>🔐 Hermes 下载并自动解密</h4><span class="step-num">Step 3</span></div><p>网关从 CDN 拉取加密文件，使用每文件独立 AES-128-ECB 密钥自动解密（支持 base64/hex 密钥格式）。</p></div>
+        <div class="flow-step"><div class="step-head"><h4>🧠 Vision 识别账单字段</h4><span class="step-num">Step 4</span></div><p>提取结构化 JSON：金额、交易时间、交易单号、交易对象、来源平台（微信/支付宝）等。</p></div>
+        <div class="flow-step"><div class="step-head"><h4>🧹 字段标准化与类型转换</h4><span class="step-num">Step 5</span></div><p>金额转 Number；交易时间转毫秒时间戳；账单类型/币种/来源平台按规则归一化。</p></div>
+        <div class="flow-step"><div class="step-head"><h4>🔎 飞书多维表格查重</h4><span class="step-num">Step 6</span></div><p>先调用 <code>records/search</code> 按 <code>交易单号</code> 检索，命中则跳过写入，避免重复。</p></div>
+        <div class="flow-step"><div class="step-head"><h4>🗂️ 写入飞书记录</h4><span class="step-num">Step 7</span></div><p>未重复时调用 <code>records/create</code> 写入结构化账单字段，返回 <code>record_id</code>。</p></div>
+        <div class="flow-step"><div class="step-head"><h4>📤 回复消息并按需上传附件</h4><span class="step-num">Step 8</span></div><p>Hermes 将结果回复微信。若需发送媒体，先本地 AES-128-ECB 加密后上传 CDN，再发送加密引用。</p></div>
+      </div>
+      <p class="tip" style="margin-top:12px;">说明：媒体链路默认启用 AES-128-ECB 加解密（自动处理），前提是环境已安装 <code>cryptography</code>。文档：<a href="https://hermes-agent.nousresearch.com/docs/user-guide/messaging/weixin" target="_blank" rel="noopener noreferrer">Weixin User Guide</a></p>
+    </section>
+
+    <section id="practice">
+      <h2>三、实战 -- Hermes 通过 MCP 接入飞书多维表格</h2>
+
+      <h3>1、创建应用并完成权限配置（必做）</h3>
+      <ol>
+        <li>打开飞书开放平台：<a href="https://open.feishu.cn" target="_blank" rel="noopener noreferrer">https://open.feishu.cn</a>，进入开发者后台。</li>
+        <li>创建应用（Hermes 记账助手）并记录 <code>App ID</code>、<code>App Secret</code>。</li>
+        <li>
+          在权限管理中开通 Base/Bitable 读写权限（如 <code>bitable:app</code>、<code>base:record:create</code>、<code>base:record:read</code>、<code>base:table:read</code>）。
+          <pre>{
+  "scopes": {
+    "tenant": [
+      "base:app:read",
+      "base:field:create",
+      "base:field:read",
+      "base:record:create",
+      "base:record:read",
+      "base:record:update",
+      "base:table:create",
+      "base:table:read",
+      "bitable:app",
+      "bitable:app:readonly"
+    ],
+    "user": []
+  }
+}</pre>
+        </li>
+        <li>发布应用并等待权限生效。</li>
+      </ol>
+
+      <h3>2、在飞书 Base 中创建/绑定目标多维表格</h3>
+      <ol>
+        <li>打开飞书（<a href="https://www.feishu.cn/" target="_blank" rel="noopener noreferrer">https://www.feishu.cn/</a>）并进入多维表格，创建或打开账本 Base。</li>
+      </ol>
+      <p><img src="/Users/charles/.hermes/images/clip_20260507_103130_3.png" alt="飞书首页进入多维表格入口" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+
+      <ol start="2">
+        <li>将该 Base 绑定到上一步创建的应用（确保应用对该 Base 可读写）。</li>
+      </ol>
+      <p><img src="/Users/charles/.hermes/images/clip_20260507_110626_5.png" alt="在 Base 中添加文档应用" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+
+      <ol start="3">
+        <li>后续从 URL 提取 <code>app_token</code> 和 <code>table_id</code>。</li>
+      </ol>
+
+      <h3>3、在 <code>~/.hermes/config.yaml</code> 配置 lark MCP Server</h3>
+      <pre>mcp_servers:
+  lark:
+    command: npx
+    args:
+      - -y
+      - '@larksuiteoapi/lark-mcp'
+      - mcp
+      - -a
+      - &lt;LARK_APP_ID&gt;
+      - -s
+      - &lt;LARK_APP_SECRET&gt;
+    env:
+      LARK_DOMAIN: https://open.feishu.cn
+    timeout: 120</pre>
+      <p class="small"><strong>LARK_APP_ID</strong>：你在飞书开放平台应用详情页看到的 App ID（应用唯一标识）。</p>
+      <p class="small"><strong>LARK_APP_SECRET</strong>：同一页面中的 App Secret（应用密钥，用于鉴权，注意保密，不要公开到代码仓库）。</p>
+
+      <h3>4、创建账单表（通过 Hermes）</h3>
+      <ol>
+        <li>先从 Base 链接提取 <code>app_token</code>。</li>
+      </ol>
+      <p><img src="/Users/charles/.hermes/images/clip_20260507_112224_6.png" alt="app_token 在 URL 中的位置" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+      <p class="small">图：app_token 在 URL 中的位置</p>
+      <p>把下面提示词发给 Hermes，让它自动建表并校验字段：</p>
+      <pre>请在这个飞书 Base（app_token: <你的 app_token>）里创建一个名为「账单」的数据表，并创建以下字段：
+1. 账单类型（Text）
+2. 交易对象（Text）
+3. 金额（Number）
+4. 币种（Text）
+5. 状态（Text）
+6. 支付方式（Text）
+7. 交易时间（DateTime，显示格式 yyyy-MM-dd HH:mm）
+8. 交易单号（Text）
+9. 来源平台（Text）
+
+创建完成后，请返回 table_id，并读取字段列表确认字段全部创建成功。</pre>
+      <p>创建后从 URL 提取 <code>table_id</code> 并记录。</p>
+      <p><img src="/Users/charles/.hermes/images/clip_20260507_173457_1.png" alt="table_id 在 URL 中的位置" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+      <p class="small">图：table_id 在 URL 中的位置</p>
+
+      <h3>5、在 Hermes 自动化配置里绑定账单表</h3>
+      <p>先把下面提示词发给 Hermes（可直接复制）：</p>
+      <pre>请帮我在 Hermes 的自动化配置中新增（或更新）一个 payment_bill_bitable 配置，绑定我当前飞书账单表：
+
+app_token: &lt;app_token&gt;
+table_id: &lt;table_id&gt;
+
+字段映射要求：
+- bill_type -> 账单类型
+- counterparty -> 交易对象
+- amount -> 金额
+- currency -> 币种
+- status -> 状态
+- payment_method -> 支付方式
+- transaction_time -> 交易时间
+- transaction_id -> 交易单号
+- source_platform -> 来源平台
+
+字段类型要求：
+- 金额: number
+- 交易时间: date
+
+请直接修改 ~/.hermes/config.yaml，在 automations: 下面新增（或更新）该配置，并检查：
+1) field_names 与飞书真实列名完全一致；
+2) table_id 可读可写；
+3) 如果已有同名配置则做幂等更新，不重复添加。</pre>
+
+<p>生成的结果如下:</p>
+
+      <pre>automations:
+  payment_bill_bitable:
+    enabled: true
+    app_token: AN4Ebb0t4a32XlsXNSqcu7XxnNg
+    table_id: tblcTlZeeiTpy9yW
+    field_names:
+      bill_type: "账单类型"
+      counterparty: "交易对象"
+      amount: "金额"
+      currency: "币种"
+      status: "状态"
+      payment_method: "支付方式"
+      transaction_time: "交易时间"
+      transaction_id: "交易单号"
+      source_platform: "来源平台"
+    field_types:
+      "账单类型": text
+      "交易对象": text
+      "金额": number
+      "币种": text
+      "状态": text
+      "支付方式": text
+      "交易时间": date
+      "交易单号": text
+      "来源平台": text</pre>
+      <p class="tip">注意：<code>field_names</code> 必须与飞书真实列名完全一致，否则会报 <code>FieldNameNotFound</code>。</p>
+
+      <h3>6、修改 <code>gateway/run.py</code>（实现自动识别 + 去重 + 自动写入）</h3>
+      <p>先把下面提示词发给 Hermes（可直接复制）：</p>
+      <pre>请直接修改文件 ~/.hermes/hermes-agent/gateway/run.py，为账单截图自动入飞书实现完整链路（自动识别 + 去重 + 自动写入）。
+
+必须使用并串联以下函数（不存在则补齐）：
+1) _maybe_capture_payment_bill_to_bitable(...)
+2) _extract_payment_bill_info_from_image(...)
+3) _build_payment_bill_bitable_fields(...)
+4) _find_existing_payment_bill_records(...)
+5) _create_payment_bill_bitable_record(...)
+
+实现要求：
+A. 识别
+- 在 _extract_payment_bill_info_from_image 中调用 vision 分析图片。
+- 提示词强制“只输出 JSON 对象”，不得输出解释文字。
+- 解析时兼容 ```json fenced code block，提取首个 JSON 对象。
+- JSON 字段至少包含：
+  is_bill, source_platform, bill_type, counterparty, amount, currency, status, payment_method, transaction_time, transaction_id, summary, raw_text。
+
+B. 标准化
+- 在 _build_payment_bill_bitable_fields 中把 bill 字段映射到 config.yaml 的 field_names。
+- 金额字段按 number 转换（如 "3.00" -> 3.0）。
+- 交易时间转换为飞书 DateTime 毫秒时间戳。
+- 账单类型统一映射：支付/转账/收款/退款。
+- 币种统一映射：CNY/USD/HKD/EUR（默认 CNY）。
+- 来源平台识别：微信/支付宝。
+
+C. 去重
+- 在写入前必须先按“交易单号”查询 records/search。
+- 命中重复则跳过写入，并返回“已存在相同交易单号，已跳过重复写入”。
+- 未命中才执行 _create_payment_bill_bitable_record 写入。
+
+D. 配置读取
+- 从 ~/.hermes/config.yaml 读取 automations.payment_bill_bitable。
+- 使用其中 app_token、table_id、field_names、field_types。
+- 若配置缺失或 disabled，直接跳过自动入库，不影响普通聊天。
+
+E. 稳定性
+- 任何异常都要记录日志并降级，不要阻断主消息流程。
+- 仅在微信平台且消息包含图片时触发。
+
+完成后请：
+1) 输出实际修改了哪些函数；
+2) 给出关键 diff 摘要；
+3) 提供最小验证步骤（新图写入、重复图跳过、支付宝来源识别）。</pre>
+      <p>按执行顺序保证函数串联：</p>
+      <pre>_maybe_capture_payment_bill_to_bitable(...)      # 总入口：检测是否触发账单自动入库
+_extract_payment_bill_info_from_image(...)       # 识别图片并提取结构化账单 JSON
+_build_payment_bill_bitable_fields(...)          # 字段映射与标准化（金额/时间/类型/来源）
+_find_existing_payment_bill_records(...)         # 写入前查重（按交易单号）
+_create_payment_bill_bitable_record(...)         # 创建飞书记录并返回 record_id</pre>
+      <ul>
+        <li>Vision 必须输出严格 JSON（兼容 fenced JSON 提取首个对象）。</li>
+        <li>写入前按 <code>交易单号</code> 先查重，命中即跳过。</li>
+        <li>金额转 number，交易时间转毫秒时间戳。</li>
+        <li>改完代码重启网关：<code>hermes gateway restart</code>。</li>
+      </ul>
+
+      <h3>7、账单图表</h3>
+      <p>在完成账单数据入库后，可用飞书 AI 快速生成仪表盘。把下面提示词发给飞书 AI：</p>
+      <pre>基于“账单”表创建一个个人记账仪表盘。
+需要包含：
+1）月度支出趋势（按“年月”，指标“支出金额求和”）
+2）来源平台占比（按“来源平台”，指标“支出金额求和”）
+3）账单类型分布（按“账单类型”，指标“金额求和”）
+并添加全局筛选：年月、来源平台、收支方向。
+默认筛选收支方向=支出。</pre>
+      <p><img src="/Users/charles/.hermes/images/clip_20260508_093713_1.png" alt="Image #1：个人记账仪表盘示例（飞书）" style="width:100%;max-width:980px;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);" /></p>
+      <p class="small">Image #1：个人记账仪表盘示例（含月度趋势、来源占比、筛选器等组件）。</p>
+    </section>
+
+    <section id="issues">
+      <h2>四、遇到的问题 &amp; 解决方案</h2>
+      <div class="issue-grid">
+        <div class="issue">
+          <h3 class="err">问题 A：FieldNameNotFound</h3>
+          <p><strong>原因：</strong>配置表字段名与飞书真实列名不一致，或表仍是旧表结构。</p>
+          <p><strong>解决：</strong>校正 <code>field_names</code>，并确保存在 <code>交易单号</code> 等目标列。</p>
+        </div>
+        <div class="issue">
+          <h3 class="err">问题 B：WrongTableId</h3>
+          <p><strong>原因：</strong><code>table_id</code> 不在当前 <code>app_token</code> 下。</p>
+          <p><strong>解决：</strong>先 <code>appTable/list</code> 确认真实表，再更新配置。</p>
+        </div>
+        <div class="issue">
+          <h3 class="warn">问题 C：来源平台误判</h3>
+          <p><strong>原因：</strong>识别规则关键词过少。</p>
+          <p><strong>解决：</strong>补充支付宝/微信多信号关键词联合判定。</p>
+        </div>
+        <div class="issue">
+          <h3 class="warn">问题 D：代码改了但结果没变</h3>
+          <p><strong>原因：</strong>网关未重启，仍在跑旧逻辑。</p>
+          <p><strong>解决：</strong>重启 Hermes gateway 后再回归验证。</p>
+        </div>
+        <div class="issue">
+          <h3 class="warn">问题 E：DateTime 格式报错</h3>
+          <p><strong>现象：</strong>显示格式带秒可能不被接受。</p>
+          <p><strong>解决：</strong>显示格式用 <code>yyyy-MM-dd HH:mm</code>。</p>
+        </div>
+        <div class="issue">
+          <h3 class="ok">问题 F：重复入库</h3>
+          <p><strong>正确策略：</strong>永远先查飞书再写，不依赖本地缓存。</p>
+          <p><strong>规则：</strong><code>transaction_id</code> 命中即跳过。</p>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer">文档更新：仅保留你指定的四大部分，并完成编号重排与界面美化。</p>
+  </div>
+
+  <script>
+    (function () {
+      const blocks = document.querySelectorAll('pre');
+      blocks.forEach((pre) => {
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.type = 'button';
+        btn.textContent = '复制';
+        btn.addEventListener('click', async () => {
+          const clone = pre.cloneNode(true);
+          const btnInClone = clone.querySelector('.copy-btn');
+          if (btnInClone) btnInClone.remove();
+          const text = clone.innerText.trim();
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = '已复制';
+            btn.classList.add('copied');
+            setTimeout(() => {
+              btn.textContent = '复制';
+              btn.classList.remove('copied');
+            }, 1200);
+          } catch (e) {
+            btn.textContent = '复制失败';
+            setTimeout(() => (btn.textContent = '复制'), 1200);
+          }
+        });
+        pre.appendChild(btn);
+      });
+    })();
+  </script>
+</body>
+</html>
